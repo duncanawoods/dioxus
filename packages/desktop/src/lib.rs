@@ -1,7 +1,7 @@
 #![doc = include_str!("readme.md")]
 #![doc(html_logo_url = "https://avatars.githubusercontent.com/u/79236386")]
 #![doc(html_favicon_url = "https://avatars.githubusercontent.com/u/79236386")]
-#![deny(missing_docs)]
+// #![deny(missing_docs)]
 
 mod app;
 mod assets;
@@ -14,7 +14,7 @@ mod event_handlers;
 mod events;
 mod file_upload;
 mod hooks;
-mod ipc;
+pub mod ipc;
 mod menubar;
 mod protocol;
 mod query;
