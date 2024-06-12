@@ -52,6 +52,10 @@ impl Writer<'_> {
             ..
         } = el;
 
+        let brace = brace
+            .as_ref()
+            .expect("braces should always be present in strict mode");
+
         /*
             1. Write the tag
             2. Write the key
@@ -245,7 +249,7 @@ impl Writer<'_> {
                 write!(self.out, "{value}",)?;
             }
             ElementAttrValue::AttrExpr(value) => {
-                let out = unparse_expr(value);
+                let out = self.unparse_expr(value);
                 let mut lines = out.split('\n').peekable();
                 let first = lines.next().unwrap();
 
@@ -426,7 +430,7 @@ impl Writer<'_> {
     }
 }
 
-fn get_expr_length(expr: &Expr) -> Option<usize> {
+fn get_expr_length(expr: &impl Spanned) -> Option<usize> {
     let span = expr.span();
     let (start, end) = (span.start(), span.end());
     if start.line == end.line {

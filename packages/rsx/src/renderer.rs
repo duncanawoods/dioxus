@@ -16,6 +16,11 @@ impl<'a> TemplateRenderer<'a> {
     }
 
     fn render(mut self) -> TokenStream2 {
+        // If there are no roots, this is an empty template, so just return None
+        if self.roots.is_empty() {
+            return quote! { Option::<dioxus_core::VNode>::None };
+        }
+
         // Create a new dynamic context that tracks the state of all the dynamic nodes
         // We have no old template, to seed it with, so it'll just be used for rendering
         let mut context = DynamicContext::default();
@@ -43,7 +48,7 @@ impl<'a> TemplateRenderer<'a> {
         let node_paths = context.node_paths.iter().map(|it| quote!(&[#(#it),*]));
         let attr_paths = context.attr_paths.iter().map(|it| quote!(&[#(#it),*]));
 
-        quote! {
+        let vnode = quote! {
             static TEMPLATE: dioxus_core::Template = dioxus_core::Template {
                 name: #name,
                 roots: #roots,
@@ -53,6 +58,7 @@ impl<'a> TemplateRenderer<'a> {
 
             {
                 // NOTE: Allocating a temporary is important to make reads within rsx drop before the value is returned
+                #[allow(clippy::let_and_return)]
                 let __vnodes = dioxus_core::VNode::new(
                     #key_tokens,
                     TEMPLATE,
@@ -61,7 +67,9 @@ impl<'a> TemplateRenderer<'a> {
                 );
                 __vnodes
             }
-        }
+        };
+
+        quote! { Some({ #vnode }) }
     }
 
     fn get_template_id_tokens(&self) -> TokenStream2 {
@@ -90,6 +98,14 @@ impl<'a> TemplateRenderer<'a> {
         let root_col = match self.roots.first() {
             Some(first_root) => {
                 let first_root_span = format!("{:?}", first_root.span());
+
+                // Rust analyzer will not autocomplete properly if we change the name every time you type a character
+                // If it looks like we are running in rust analyzer, we'll just use a placeholder location
+                let looks_like_rust_analyzer = first_root_span.contains("SpanData");
+                if looks_like_rust_analyzer {
+                    return "0".to_string();
+                }
+
                 first_root_span
                     .rsplit_once("..")
                     .and_then(|(_, after)| after.split_once(')').map(|(before, _)| before))
